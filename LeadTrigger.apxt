@@ -1,0 +1,61 @@
+trigger LeadTrigger on Lead (after insert) {
+    
+    System.debug('Lead Trigger Starts');
+    if(Trigger.isAfter){
+        if(Trigger.isInsert){
+            
+            List <Account> AccountList = new List <Account>([SELECT Name FROM Account]); 
+            List <Contact> ContactList = new List <Contact>([SELECT Name FROM Contact]);
+            
+            Set<String> AccountNameSet = new Set<String>();
+            Set<String> ContactNameSet = new Set<String>();
+            for(Account acc : AccountList){
+                AccountNameSet.add(acc.Name);
+            }
+            for(Contact con : ContactList){
+                ContactNameSet.add(con.Name);
+            }
+             // Newly created Lead Names Set
+            
+            List <Account> AccountUpdateList = new List <Account>(); // Accounts to be updated
+            for (Lead leadRec : Trigger.new){
+                if(!AccountNameSet.Contains(leadRec.Company)){
+                    AccountUpdateList.add(new Account(Name = leadRec.Company));
+                }
+            }
+            System.debug(AccountUpdateList);
+            if(!AccountUpdateList.isEmpty()) {
+                insert AccountUpdateList;
+            }
+            List <Account> UpdatedAccountList = new List <Account>([SELECT Name FROM Account]); 
+           	Map <String,id> AccountMap = new Map <String,id>();
+            for(Account acc : UpdatedAccountList){
+                AccountMap.put(acc.Name, acc.Id);
+            }
+           List<Contact> ContactUpdateList = new List<Contact>();
+            List<Opportunity> OpportunityUpdateList = new List<Opportunity>();
+            for(Lead leadRec : Trigger.new){
+                for (Account Acc : UpdatedAccountList){
+                    if(!ContactNameSet.Contains(LeadRec.Name) && Acc.Name == leadRec.Company){
+                        ContactUpdateList.add(new Contact( FirstName = leadRec.FirstName , LastName = leadRec.LastName, AccountId = Acc.Id ));
+                        
+                    }
+                    if( Acc.Name == leadRec.Company){
+                        OpportunityUpdateList.add(new Opportunity ( Name = leadRec.FirstName+' '+leadRec.LastName, StageName = 'Closed Won', CloseDate = date.today() ,AccountId = Acc.Id));
+                        
+                    }
+                }
+                
+            }
+            
+            if(!ContactUpdateList.isEmpty()) {
+                insert ContactUpdateList;
+            }
+            if(! OpportunityUpdateList.isEmpty()){
+                insert  OpportunityUpdateList;
+            }
+        }
+    }
+    
+    
+}
