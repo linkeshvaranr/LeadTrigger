@@ -1,0 +1,86 @@
+public class LeadTriggerHandler {
+    
+    public static void accountCreation(List<Lead> newLeads) {
+        
+        //Sets to store the newly created leads Company Name and Lead Name
+        Set <String> leadCompanyNameSet = new Set <String>();
+        Set <String> leadNameSet = new Set <String>();
+        
+        //Set to Store existing AccountName and Conatact Name
+        Set <String> accountNameSet = new Set <String>();
+        Set <String> contactNameSet = new Set <String>();
+        
+        // adding newly created leads Company Name and Lead Name set
+        for(Lead leadRec : newLeads) {
+            leadCompanyNameSet.add(leadRec.Company);
+            leadNameSet.add(leadRec.Name);
+        }
+        // adding existing AccountName to set
+        for(Account accountRec : [SELECT Name FROM Account WHERE Name IN :leadCompanyNameSet ] ) {
+            accountNameSet.add(accountRec.Name);
+            
+        }
+        // adding existing ContactName to set
+        for (Contact contactRec : [SELECT Name FROM Contact WHERE Name IN :leadNameSet ] ) {
+            contactNameSet.add(contactRec.Name);
+            
+        }
+        
+        //List for Accounts to insert
+        List <Account> accountToBeInsertedList = new List <Account>(); 
+        for (Lead leadRec : newLeads){
+            if(!accountNameSet.Contains(leadRec.Company)){
+                accountToBeInsertedList.add(new Account(Name = leadRec.Company));
+            }
+			
+        }
+        if(!accountToBeInsertedList.isEmpty()) {
+            insert accountToBeInsertedList;
+        }
+        //Calling the opportunity and contact creation methods
+        opportunityCreation(newLeads , accountToBeInsertedList);
+        contactCreation(newLeads, accountToBeInsertedList, contactNameSet );      
+    }
+    
+    public static void opportunityCreation(List<Lead> newLeads , List<Account> accountList) {
+        List<Opportunity> opportunityToBeInsertedList = new List<Opportunity>();
+        for( Lead leadRec : newLeads) {
+            for( Account acc : accountList) {
+                if(acc.Name == leadRec.Company) {
+                    
+                	opportunityToBeInsertedList.add(new Opportunity 
+                                                    ( Name = leadRec.FirstName+' '+leadRec.LastName, 
+                                                                 StageName = 'Closed Won', 
+                                                                 CloseDate = date.today() ,
+                                                                 AccountId = acc.Id));
+                } 
+                
+            }
+         
+        }
+        if(!opportunityToBeInsertedList.isEmpty()){
+            insert opportunityToBeInsertedList;
+        }
+        
+    }
+    public static void contactCreation(List<Lead> newLeads, List<Account> accountList, Set<String> contactNameSet) {
+        List<Contact> contactToBeInsertedList = new List<Contact>();
+        for(Lead leadRec : newLeads) {
+            for (Account Acc : accountList){
+                //Condition to avoid duplicate contacts 
+                if(!contactNameSet.contains(leadRec.Name)&& Acc.Name == leadRec.Company){
+                    contactToBeInsertedList.add(new Contact
+                                                ( FirstName = leadRec.FirstName , 
+                                                            LastName = leadRec.LastName, 
+                                                            AccountId = Acc.Id ));
+                }
+                
+            }
+            
+        }
+        if(!contactToBeInsertedList.isEmpty()) {
+            insert contactToBeInsertedList;
+        }    
+    }       
+
+}

@@ -1,66 +1,11 @@
 trigger LeadTrigger on Lead (after insert) {
-    
-
-    if(Trigger.isAfter){
-        if(Trigger.isInsert){
-            System.debug('Lead Trigger Starts');
+    if(Trigger.isAfter) {
+        
+        if(Trigger.isInsert) {
             
-            List <Account> AccountList = new List <Account>([SELECT Name FROM Account]); 
-            List <Contact> ContactList = new List <Contact>([SELECT Name, AccountId FROM Contact]);
+            LeadTriggerHandler.accountCreation(Trigger.new);
             
-            Set<String> AccountNameSet = new Set<String>();
-            Set<String> ContactAccIdSet = new Set<String>();
-            for(Account acc : AccountList){
-                AccountNameSet.add(acc.Name);
-            }
-            for(Contact con : ContactList){
-                ContactAccIdSet.add(con.AccountId);
-            }
-             // Newly created Lead Names Set
-            
-            List <Lead> newLeads = Trigger.new;
-            List <Account> AccountToBeInsertedList = new List <Account>(); // Accounts to be updated
-            for (Lead leadRec : newLeads){
-                if(!AccountNameSet.Contains(leadRec.Company)){
-                    AccountToBeInsertedList.add(new Account(Name = leadRec.Company));
-                }
-            }
-            System.debug(AccountToBeInsertedList);
-            if(!AccountToBeInsertedList.isEmpty()) {
-                insert AccountToBeInsertedList;
-            }
-            List <Account> AfterInsertAccountList = new List <Account>([SELECT Name FROM Account]); 
-           	
-           	List<Contact> ContactToBeInsertedList = new List<Contact>();
-            List<Opportunity> OpportunityToBeInsertedList = new List<Opportunity>();
-            for(Lead leadRec : newLeads){
-                for (Account Acc : AfterInsertAccountList){
-                    if(!ContactAccIdSet.contains(Acc.Id)&& Acc.Name == leadRec.Company){
-                        ContactToBeInsertedList.add(new Contact( FirstName = leadRec.FirstName , LastName = leadRec.LastName, AccountId = Acc.Id ));
-                        
-                    }
-                    if( Acc.Name == leadRec.Company){
-                        OpportunityToBeInsertedList.add(new Opportunity ( Name = leadRec.FirstName+' '+leadRec.LastName, StageName = 'Closed Won', CloseDate = date.today() ,AccountId = Acc.Id));
-                        
-                    }
-                }
-                
-            }
-            
-            if(!ContactToBeInsertedList.isEmpty()) {
-                insert ContactToBeInsertedList;
-            }
-            if(!OpportunityToBeInsertedList.isEmpty()){
-                insert  OpportunityToBeInsertedList;
-            }
-            
-         }
+        }
     }
     
-    
-}           
-            
-            
-            
-            
-            
+}
