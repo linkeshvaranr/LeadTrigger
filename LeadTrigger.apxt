@@ -1,61 +1,66 @@
 trigger LeadTrigger on Lead (after insert) {
     
-    System.debug('Lead Trigger Starts');
+
     if(Trigger.isAfter){
         if(Trigger.isInsert){
+            System.debug('Lead Trigger Starts');
             
             List <Account> AccountList = new List <Account>([SELECT Name FROM Account]); 
-            List <Contact> ContactList = new List <Contact>([SELECT Name FROM Contact]);
+            List <Contact> ContactList = new List <Contact>([SELECT Name, AccountId FROM Contact]);
             
             Set<String> AccountNameSet = new Set<String>();
-            Set<String> ContactNameSet = new Set<String>();
+            Set<String> ContactAccIdSet = new Set<String>();
             for(Account acc : AccountList){
                 AccountNameSet.add(acc.Name);
             }
             for(Contact con : ContactList){
-                ContactNameSet.add(con.Name);
+                ContactAccIdSet.add(con.AccountId);
             }
              // Newly created Lead Names Set
             
-            List <Account> AccountUpdateList = new List <Account>(); // Accounts to be updated
-            for (Lead leadRec : Trigger.new){
+            List <Lead> newLeads = Trigger.new;
+            List <Account> AccountToBeInsertedList = new List <Account>(); // Accounts to be updated
+            for (Lead leadRec : newLeads){
                 if(!AccountNameSet.Contains(leadRec.Company)){
-                    AccountUpdateList.add(new Account(Name = leadRec.Company));
+                    AccountToBeInsertedList.add(new Account(Name = leadRec.Company));
                 }
             }
-            System.debug(AccountUpdateList);
-            if(!AccountUpdateList.isEmpty()) {
-                insert AccountUpdateList;
+            System.debug(AccountToBeInsertedList);
+            if(!AccountToBeInsertedList.isEmpty()) {
+                insert AccountToBeInsertedList;
             }
-            List <Account> UpdatedAccountList = new List <Account>([SELECT Name FROM Account]); 
-           	Map <String,id> AccountMap = new Map <String,id>();
-            for(Account acc : UpdatedAccountList){
-                AccountMap.put(acc.Name, acc.Id);
-            }
-           List<Contact> ContactUpdateList = new List<Contact>();
-            List<Opportunity> OpportunityUpdateList = new List<Opportunity>();
-            for(Lead leadRec : Trigger.new){
-                for (Account Acc : UpdatedAccountList){
-                    if(!ContactNameSet.Contains(LeadRec.Name) && Acc.Name == leadRec.Company){
-                        ContactUpdateList.add(new Contact( FirstName = leadRec.FirstName , LastName = leadRec.LastName, AccountId = Acc.Id ));
+            List <Account> AfterInsertAccountList = new List <Account>([SELECT Name FROM Account]); 
+           	
+           	List<Contact> ContactToBeInsertedList = new List<Contact>();
+            List<Opportunity> OpportunityToBeInsertedList = new List<Opportunity>();
+            for(Lead leadRec : newLeads){
+                for (Account Acc : AfterInsertAccountList){
+                    if(!ContactAccIdSet.contains(Acc.Id)&& Acc.Name == leadRec.Company){
+                        ContactToBeInsertedList.add(new Contact( FirstName = leadRec.FirstName , LastName = leadRec.LastName, AccountId = Acc.Id ));
                         
                     }
                     if( Acc.Name == leadRec.Company){
-                        OpportunityUpdateList.add(new Opportunity ( Name = leadRec.FirstName+' '+leadRec.LastName, StageName = 'Closed Won', CloseDate = date.today() ,AccountId = Acc.Id));
+                        OpportunityToBeInsertedList.add(new Opportunity ( Name = leadRec.FirstName+' '+leadRec.LastName, StageName = 'Closed Won', CloseDate = date.today() ,AccountId = Acc.Id));
                         
                     }
                 }
                 
             }
             
-            if(!ContactUpdateList.isEmpty()) {
-                insert ContactUpdateList;
+            if(!ContactToBeInsertedList.isEmpty()) {
+                insert ContactToBeInsertedList;
             }
-            if(! OpportunityUpdateList.isEmpty()){
-                insert  OpportunityUpdateList;
+            if(!OpportunityToBeInsertedList.isEmpty()){
+                insert  OpportunityToBeInsertedList;
             }
-        }
+            
+         }
     }
     
     
-}
+}           
+            
+            
+            
+            
+            
